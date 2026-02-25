@@ -23,3 +23,6 @@ celerybeat.pid
 
 # macOS
 .DS_Store
+
+# Local Infrastructure Scripts
+start-minio.bat
