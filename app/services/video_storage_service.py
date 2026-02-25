@@ -6,7 +6,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class StorageService:
+class VideoStorageService:
     def __init__(self):
         self.s3_client = boto3.client(
             "s3",
@@ -96,4 +96,4 @@ class StorageService:
             logger.error(f"Error listing files: {e}")
             raise Exception("Failed to retrieve videos from storage")
 
-storage_service = StorageService()
+video_storage_service = VideoStorageService()
