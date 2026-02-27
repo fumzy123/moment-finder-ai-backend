@@ -9,6 +9,9 @@ class Settings(BaseSettings):
     S3_ENDPOINT_URL: str | None = None
     S3_USE_SSL: bool = True
     DATABASE_URL: str
+    
+    # Celery & Redis Configuration
+    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
