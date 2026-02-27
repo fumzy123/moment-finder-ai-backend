@@ -2,7 +2,7 @@ import time
 import logging
 from app.worker.celery_app import celery_app
 from app.db.database import SessionLocal
-from app.models.video import Video, VideoStatus
+from app.models.video_metadata import VideoMetadata, VideoStatus
 
 logger = logging.getLogger(__name__)
 

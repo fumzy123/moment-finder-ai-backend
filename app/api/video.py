@@ -1,6 +1,8 @@
-from fastapi import APIRouter, File, UploadFile, HTTPException, Depends
-from app.services.video_storage_service import video_storage_service
+from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, Form
+from app.services.file_storage_service import file_storage_service
 from app.services.video_metadata_service import VideoMetadataStorageService, get_video_metadata_service
+from app.services.character_screenshot_metadata_service import ScreenshotMetadataService, get_screenshot_metadata_service
+from app.worker.tasks import process_character_search
 router = APIRouter(
     prefix="/videos",
     tags=["Videos"]
@@ -19,7 +21,7 @@ async def get_videos(video_metadata_service: VideoMetadataStorageService = Depen
         response_videos = []
         for v in db_videos:
             # Add the ephemeral signed URL for the frontend
-            v["url"] = video_storage_service.get_presigned_url(v["storage_key"])
+            v["url"] = file_storage_service.get_presigned_url(v["storage_key"])
             response_videos.append(v)
             
         return {
@@ -44,8 +46,14 @@ async def upload_video(
         raise HTTPException(status_code=400, detail="File must be a video.")
         
     try:
-        # 1. Upload the physical massive file to MinIO via the Video Storage Service
-        object_key = video_storage_service.upload_file(file.file, file.filename, file.content_type)
+        # 1. Upload the physical massive file to MinIO via the File Storage Service
+        # We store original videos in the 'videos/' prefix folder
+        object_key = file_storage_service.upload_file(
+            file.file, 
+            file.filename, 
+            file.content_type, 
+            prefix="videos/"
+        )
         
         # 2. Save the structured metadata via the Video Metadata Storage Service
         video_record = video_metadata_service.save_video_metadata(
@@ -85,6 +93,53 @@ async def search_video(query: str, character_name: str, video_id: str):
         "status": "success",
         "video_id": video_id,
         "character": character_name,
-        "query": query,
         "matches": []
     }
+
+@router.post("/search/screenshot")
+async def upload_screenshot_and_search(
+    video_id: str = Form(...),
+    character_name: str = Form(...),
+    time_stamp: float = Form(...),
+    file: UploadFile = File(...),
+    screenshot_metadata_service: ScreenshotMetadataService = Depends(get_screenshot_metadata_service)
+):
+    """
+    Endpoint for uploading a cropped character face to search the video.
+    This triggers the asynchronous Celery background worker!
+    """
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File must be an image.")
+        
+    try:
+        # 1. Upload the physical image crop to MinIO
+        # Neatly nest this inside the specific video's folder in MinIO
+        prefix = f"videos/{video_id}/screenshots/"
+        object_key = file_storage_service.upload_file(
+            file.file, 
+            file.filename, 
+            file.content_type, 
+            prefix=prefix
+        )
+        
+        # 2. Save the metadata to PostgreSQL (CharacterScreenshot table)
+        screenshot_record = screenshot_metadata_service.save_screenshot_metadata(
+            video_id=video_id,
+            character_name=character_name,
+            storage_key=object_key,
+            time_stamp=time_stamp
+        )
+        
+        # 3. The Magic: Dispatch the job to Redis for Celery to pick up
+        process_character_search.delay(screenshot_record["id"])
+        
+        # 4. Instantly return a success to the user so their browser doesn't freeze
+        return {
+            "status": "success",
+            "message": f"Search started for {character_name}. AI is processing in the background.",
+            "screenshot_id": screenshot_record["id"],
+            "processing_status": "PROCESSING"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

@@ -1,8 +1,7 @@
 from sqlalchemy.orm import Session
 from fastapi import Depends
-from app.models.video import Video, VideoStatus
+from app.models.video_metadata import VideoMetadata, VideoStatus
 from app.db.database import get_db
-from app.db.database import SessionLocal
 import logging
 
 logger = logging.getLogger(__name__)
@@ -18,7 +17,7 @@ class VideoMetadataStorageService:
         Returns a dictionary to fully decouple SQLAlchemy models from the API layer.
         """
         try:
-            db_video = Video(
+            db_video = VideoMetadata(
                 original_filename=original_filename,
                 storage_key=storage_key,
                 status=VideoStatus.PENDING # Initial status upon upload
@@ -46,7 +45,7 @@ class VideoMetadataStorageService:
         Retrieves metadata for all video tracking records from the database.
         Returns a list of dictionaries to fully decouple SQLAlchemy models from the API layer.
         """
-        videos = self.db.query(Video).order_by(Video.created_at.desc()).all()
+        db_videos = self.db.query(VideoMetadata).order_by(VideoMetadata.created_at.desc()).all()
         return [
                 {
                     "id": str(v.id),
@@ -56,7 +55,7 @@ class VideoMetadataStorageService:
                     "storage_key": v.storage_key,
                     "created_at": v.created_at.isoformat()
                 }
-                for v in videos
+                for v in db_videos
             ]
 
 # We construct a dependency that FastAPI will automatically call.

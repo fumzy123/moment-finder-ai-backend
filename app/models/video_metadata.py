@@ -13,8 +13,8 @@ class VideoStatus(enum.Enum):
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
 
-class Video(Base):
-    __tablename__ = "videos"
+class VideoMetadata(Base):
+    __tablename__ = "video_metadata"
 
     # Primary Key
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -34,5 +34,5 @@ class Video(Base):
 
     # Relationships
     # This allows us to say `video.screenshots` to get all characters tracked in this video
-    screenshots = relationship("VideoScreenshot", back_populates="video", cascade="all, delete-orphan")
+    screenshots = relationship("CharacterScreenshotMetadata", back_populates="video", cascade="all, delete-orphan")
     moments = relationship("CharacterMoment", back_populates="video", cascade="all, delete-orphan")

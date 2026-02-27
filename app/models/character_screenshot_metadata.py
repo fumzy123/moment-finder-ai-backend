@@ -5,16 +5,16 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.db.base import Base
 
-class VideoScreenshot(Base):
+class CharacterScreenshotMetadata(Base):
     """
     Represents a specific character reference image cropped by the user.
     """
-    __tablename__ = "video_screenshots"
+    __tablename__ = "character_screenshot_metadata"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
     # Foreign Key linking it to the master Video
-    video_id = Column(UUID(as_uuid=True), ForeignKey("videos.id"), nullable=False)
+    video_id = Column(UUID(as_uuid=True), ForeignKey("video_metadata.id"), nullable=False)
     
     # Data
     character_name = Column(String, nullable=False) # e.g., "Thanos"
@@ -29,5 +29,5 @@ class VideoScreenshot(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
-    video = relationship("Video", back_populates="screenshots")
+    video = relationship("VideoMetadata", back_populates="screenshots")
     moments = relationship("CharacterMoment", back_populates="character")

@@ -6,7 +6,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class VideoStorageService:
+class FileStorageService:
     def __init__(self):
         self.s3_client = boto3.client(
             "s3",
@@ -18,13 +18,15 @@ class VideoStorageService:
         )
         self.bucket_name = settings.S3_BUCKET_NAME
 
-    def upload_file(self, file_obj, filename: str, content_type: str) -> str:
+    def upload_file(self, file_obj, filename: str, content_type: str, prefix: str = "") -> str:
         """
         Uploads a file object to S3 / MinIO and returns the generated object key.
+        Supports optional prefixes (e.g., 'videos/' or 'videos/{id}/screenshots/').
         """
         # Generate a unique key for the file to prevent overwrites
         extension = filename.split('.')[-1] if '.' in filename else ''
-        unique_key = f"{uuid.uuid4().hex}.{extension}" if extension else uuid.uuid4().hex
+        file_uuid = uuid.uuid4().hex
+        unique_key = f"{prefix}{file_uuid}.{extension}" if extension else f"{prefix}{file_uuid}"
         
         try:
             # We store the original filename in the object metadata
@@ -89,11 +91,10 @@ class VideoStorageService:
                         "url": presigned_url
                     })
                     
-            # Sort by newest first
             return sorted(videos, key=lambda x: x['uploaded_at'], reverse=True)
             
         except ClientError as e:
             logger.error(f"Error listing files: {e}")
             raise Exception("Failed to retrieve videos from storage")
 
-video_storage_service = VideoStorageService()
+file_storage_service = FileStorageService()
