@@ -10,8 +10,13 @@ class Settings(BaseSettings):
     S3_USE_SSL: bool = True
     DATABASE_URL: str
     
-    # Celery & Redis Configuration
+    # Celery & Message Broker
     CELERY_BROKER_URL: str = "redis://localhost:6379/0"
+    
+    # AI Engines
+    ACTIVE_AI_ENGINE: str = "GEMINI"
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL_NAME: str = "gemini-2.5-flash-lite"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
