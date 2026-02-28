@@ -61,6 +61,18 @@ class FileStorageService:
             logger.error(f"Error generating presigned URL: {e}")
             return ""
 
+    def download_file(self, object_key: str, download_path: str) -> str:
+        """
+        Downloads a file from S3 / MinIO to the local filesystem.
+        Used by the background Celery Workers to fetch physical files for AI processing.
+        """
+        try:
+            self.s3_client.download_file(self.bucket_name, object_key, download_path)
+            return download_path
+        except ClientError as e:
+            logger.error(f"Error downloading file {object_key} from storage: {e}")
+            raise Exception("Failed to download file from storage")
+
     def list_videos(self) -> list:
         """
         Retrieves all videos from the bucket, fetches their original filenames from metadata, 
